@@ -203,10 +203,12 @@
 
                     <!-- API Configuration Page -->
                     <div class="settings-page" id="apiConfigPage">
+                        <!-- 主API配置 -->
+                        <div class="settings-header-text">主API</div>
                         <div class="settings-group">
                             <div class="input-group">
                                 <label data-i18n="apiAddress">API 地址</label>
-                                <input type="text" id="apiAddress" placeholder="https://api.openai.com/v1">
+                                <input type="text" id="apiAddress" placeholder="不需要加入/v1">
                             </div>
                             <div class="input-group">
                                 <label data-i18n="apiKey">API 密钥</label>
@@ -228,6 +230,35 @@
                         </div>
                         <div class="settings-group">
                             <button class="action-btn" id="saveApiBtn" style="color: #34C759;" data-i18n="saveBtn">保存配置</button>
+                        </div>
+
+                        <!-- 副API配置 -->
+                        <div class="settings-header-text">副API (用于OO软件)</div>
+                        <div class="settings-group">
+                            <div class="input-group">
+                                <label>API 地址</label>
+                                <input type="text" id="secondaryApiAddress" placeholder="不需要加入/v1">
+                            </div>
+                            <div class="input-group">
+                                <label>API 密钥</label>
+                                <input type="password" id="secondaryApiKey" placeholder="sk-...">
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <button class="action-btn" id="fetchSecondaryModelsBtn">配置 (拉取模型)</button>
+                        </div>
+                        <div class="settings-group" id="secondaryModelSelectionGroup" style="display: none;">
+                            <div class="input-group">
+                                <label>选择模型</label>
+                                <select id="secondaryModelSelect"></select>
+                            </div>
+                            <div class="info-row">
+                                <span>当前模型:</span>
+                                <span id="secondaryCurrentModelDisplay" class="value-text">未选择</span>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <button class="action-btn" id="saveSecondaryApiBtn" style="color: #34C759;">保存配置</button>
                         </div>
                         <div class="settings-header-text" data-i18n="presetsTitle">预设</div>
                         <div class="settings-group">

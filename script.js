@@ -225,6 +225,11 @@ let appState = {
         key: '',
         model: ''
     },
+    secondaryApiConfig: {
+        url: '',
+        key: '',
+        model: ''
+    },
     presets: [],
     appearancePresets: [],
     worldbook: [],
@@ -320,6 +325,8 @@ const elements = {
         userName: document.getElementById('userNameInput'),
         apiAddress: document.getElementById('apiAddress'),
         apiKey: document.getElementById('apiKey'),
+        secondaryApiAddress: document.getElementById('secondaryApiAddress'),
+        secondaryApiKey: document.getElementById('secondaryApiKey'),
         presetName: document.getElementById('presetNameInput'),
         fullScreen: document.getElementById('fullScreenToggle'),
         darkMode: document.getElementById('darkModeToggle'),
@@ -342,6 +349,9 @@ const elements = {
         modelSelect: document.getElementById('modelSelect'),
         currentModel: document.getElementById('currentModelDisplay'),
         modelGroup: document.getElementById('modelSelectionGroup'),
+        secondaryModelSelect: document.getElementById('secondaryModelSelect'),
+        secondaryCurrentModel: document.getElementById('secondaryCurrentModelDisplay'),
+        secondaryModelGroup: document.getElementById('secondaryModelSelectionGroup'),
         presetSelect: document.getElementById('presetSelect'),
         appearancePresetSelect: document.getElementById('appearancePresetSelect'),
         cardBg: document.getElementById('cardBgDisplay'),
@@ -363,6 +373,8 @@ const elements = {
     buttons: {
         fetchModels: document.getElementById('fetchModelsBtn'),
         saveApi: document.getElementById('saveApiBtn'),
+        fetchSecondaryModels: document.getElementById('fetchSecondaryModelsBtn'),
+        saveSecondaryApi: document.getElementById('saveSecondaryApiBtn'),
         savePreset: document.getElementById('savePresetBtn'),
         saveAppearancePreset: document.getElementById('saveAppearancePresetBtn'),
         resetAppearance: document.getElementById('resetAppearanceBtn'),
@@ -762,6 +774,14 @@ function updateUI() {
         elements.display.modelGroup.style.display = 'block';
     }
 
+    // Secondary API Config
+    elements.inputs.secondaryApiAddress.value = appState.secondaryApiConfig.url;
+    elements.inputs.secondaryApiKey.value = appState.secondaryApiConfig.key;
+    if (appState.secondaryApiConfig.model) {
+        elements.display.secondaryCurrentModel.innerText = appState.secondaryApiConfig.model;
+        elements.display.secondaryModelGroup.style.display = 'block';
+    }
+
     // Fullscreen
     elements.inputs.fullScreen.checked = appState.fullscreen;
     if (appState.fullscreen) {
@@ -1039,6 +1059,8 @@ function setupEventListeners() {
     // API
     elements.buttons.fetchModels.onclick = fetchModels;
     elements.buttons.saveApi.onclick = saveApiConfig;
+    elements.buttons.fetchSecondaryModels.onclick = fetchSecondaryModels;
+    elements.buttons.saveSecondaryApi.onclick = saveSecondaryApiConfig;
     elements.buttons.savePreset.onclick = savePreset;
     elements.buttons.saveAppearancePreset.onclick = saveAppearancePreset;
     elements.buttons.resetAppearance.onclick = resetAppearance;
@@ -1053,6 +1075,12 @@ function setupEventListeners() {
     elements.display.modelSelect.onchange = (e) => {
         appState.apiConfig.model = e.target.value;
         elements.display.currentModel.innerText = e.target.value;
+        saveState();
+    };
+
+    elements.display.secondaryModelSelect.onchange = (e) => {
+        appState.secondaryApiConfig.model = e.target.value;
+        elements.display.secondaryCurrentModel.innerText = e.target.value;
         saveState();
     };
     
@@ -1346,6 +1374,110 @@ function loadMockModels() {
         elements.display.modelSelect.appendChild(option);
     });
     elements.display.modelGroup.style.display = 'block';
+}
+
+// Secondary API Logic
+async function fetchSecondaryModels() {
+    const url = elements.inputs.secondaryApiAddress.value;
+    const key = elements.inputs.secondaryApiKey.value;
+
+    if (!url) {
+        await showModal('请输入副API地址');
+        return;
+    }
+
+    // Save config
+    appState.secondaryApiConfig.url = url;
+    appState.secondaryApiConfig.key = key;
+    saveState();
+
+    elements.buttons.fetchSecondaryModels.innerText = '正在获取...';
+    elements.buttons.fetchSecondaryModels.disabled = true;
+
+    try {
+        let endpoint = url.trim();
+        endpoint = endpoint.replace(/\/+$/, '');
+
+        const headers = {};
+        if (key) {
+            headers['Authorization'] = `Bearer ${key}`;
+        }
+
+        const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: headers
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        elements.display.secondaryModelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
+        
+        if (data.data && Array.isArray(data.data)) {
+            data.data.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.innerText = model.id;
+                elements.display.secondaryModelSelect.appendChild(option);
+            });
+            elements.display.secondaryModelGroup.style.display = 'block';
+            await showModal('副API模型获取成功，请在下方选择模型。');
+        } else {
+            throw new Error('无法解析模型数据格式');
+        }
+
+    } catch (error) {
+        console.error('Secondary API Error:', error);
+        
+        let errorMessage = '副API拉取失败:\n';
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorMessage += '• 网络连接失败，请检查API地址是否正确\n';
+            errorMessage += '• 确保API服务正在运行\n';
+            errorMessage += '• 检查是否存在跨域问题';
+        } else if (error.message.includes('HTTP 401')) {
+            errorMessage += '• API密钥无效或已过期\n';
+            errorMessage += '• 请检查API密钥是否正确';
+        } else if (error.message.includes('HTTP 403')) {
+            errorMessage += '• 访问被拒绝\n';
+            errorMessage += '• 请检查API密钥权限';
+        } else if (error.message.includes('HTTP 404')) {
+            errorMessage += '• API地址不存在\n';
+            errorMessage += '• 请检查API地址是否正确';
+        } else {
+            errorMessage += `• ${error.message}`;
+        }
+        
+        await showModal(errorMessage);
+        
+        if (await showModal('是否加载演示模型数据? (用于测试界面功能)', true)) {
+            loadSecondaryMockModels();
+        }
+    } finally {
+        elements.buttons.fetchSecondaryModels.innerText = '配置 (拉取模型)';
+        elements.buttons.fetchSecondaryModels.disabled = false;
+    }
+}
+
+function loadSecondaryMockModels() {
+    const mockModels = ['gpt-3.5-turbo', 'gpt-4', 'claude-3-opus', 'gemini-pro'];
+    elements.display.secondaryModelSelect.innerHTML = '<option value="" disabled selected>选择一个模型</option>';
+    mockModels.forEach(m => {
+        const option = document.createElement('option');
+        option.value = m;
+        option.innerText = m;
+        elements.display.secondaryModelSelect.appendChild(option);
+    });
+    elements.display.secondaryModelGroup.style.display = 'block';
+}
+
+function saveSecondaryApiConfig() {
+    appState.secondaryApiConfig.url = elements.inputs.secondaryApiAddress.value;
+    appState.secondaryApiConfig.key = elements.inputs.secondaryApiKey.value;
+    saveState();
+    showModal('副API配置保存成功');
 }
 
 // Card Logic
@@ -2123,7 +2255,17 @@ window.triggerAIReply = async function() {
     try {
         let reply = "";
         
-        if (appState.apiConfig.key && appState.apiConfig.url && appState.apiConfig.model) {
+        // 根据当前应用选择API配置
+        let apiConfig;
+        if (currentChatAppId === 'oo') {
+            // OO软件使用副API
+            apiConfig = appState.secondaryApiConfig;
+        } else {
+            // 其他应用使用主API
+            apiConfig = appState.apiConfig;
+        }
+        
+        if (apiConfig.key && apiConfig.url && apiConfig.model) {
             // Prepare Context - 增强版本，读取更多信息
             let systemPrompt = "你是一个角色扮演 AI。请根据用户的设定和当前的对话历史进行回复。请保持角色的语气和性格。不要跳出角色。\n\n";
             
@@ -2238,9 +2380,19 @@ window.triggerAIReply = async function() {
 };
 
 async function callLLM(messages) {
-    const url = appState.apiConfig.url;
-    const key = appState.apiConfig.key;
-    const model = appState.apiConfig.model || 'gpt-3.5-turbo';
+    // 根据当前应用选择API配置
+    let apiConfig;
+    if (currentChatAppId === 'oo') {
+        // OO软件使用副API
+        apiConfig = appState.secondaryApiConfig;
+    } else {
+        // 其他应用使用主API
+        apiConfig = appState.apiConfig;
+    }
+
+    const url = apiConfig.url;
+    const key = apiConfig.key;
+    const model = apiConfig.model || 'gpt-3.5-turbo';
 
     let endpoint = url;
     if (!endpoint.endsWith('/chat/completions')) {
