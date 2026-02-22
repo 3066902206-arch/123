@@ -288,6 +288,7 @@ let appState = {
     language: 'zh-CN',
     fontOffset: 0,
     theme: 'bunny', // Default to bunny theme as requested
+    activeChatApp: 'qq', // Default active chat app
     slotA: { contacts: [], chats: [], posts: [] },
     slotB: { contacts: [], chats: [], posts: [] },
     couplePosts: [],
@@ -642,6 +643,11 @@ function loadState() {
 
 // Save State to LocalStorage
 function saveState() {
+    // 使用更具体的键名，包含时间戳以避免冲突
+    const stateKey = 'iphoneSimState_' + window.location.pathname.replace(/[^a-zA-Z0-9]/g, '_');
+    localStorage.setItem(stateKey, JSON.stringify(appState));
+    
+    // 同时保存一个主键，用于向后兼容
     localStorage.setItem('iphoneSimState', JSON.stringify(appState));
 }
 
@@ -1259,13 +1265,10 @@ async function fetchModels() {
     elements.buttons.fetchModels.disabled = true;
 
     try {
-        // Construct Fetch
-        // Assume OpenAI compatible /v1/models endpoint
-        let endpoint = url;
-        if (!endpoint.endsWith('/models')) {
-            // Append /models if not present (simple heuristic)
-            endpoint = endpoint.replace(/\/+$/, '') + '/models';
-        }
+        // 完全使用用户输入的API地址，不做任何自动路径添加
+        let endpoint = url.trim();
+        // 移除末尾多余的斜杠，但不添加任何路径
+        endpoint = endpoint.replace(/\/+$/, '');
 
         const headers = {};
         if (key) {
@@ -1278,7 +1281,7 @@ async function fetchModels() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -1301,7 +1304,27 @@ async function fetchModels() {
 
     } catch (error) {
         console.error('API Error:', error);
-        await showModal('获取模型失败: ' + error.message + '\n\n如果是模拟环境，请忽略此错误。');
+        
+        // 显示详细的错误信息
+        let errorMessage = 'API拉取失败:\n';
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorMessage += '• 网络连接失败，请检查API地址是否正确\n';
+            errorMessage += '• 确保API服务正在运行\n';
+            errorMessage += '• 检查是否存在跨域问题';
+        } else if (error.message.includes('HTTP 401')) {
+            errorMessage += '• API密钥无效或已过期\n';
+            errorMessage += '• 请检查API密钥是否正确';
+        } else if (error.message.includes('HTTP 403')) {
+            errorMessage += '• 访问被拒绝\n';
+            errorMessage += '• 请检查API密钥权限';
+        } else if (error.message.includes('HTTP 404')) {
+            errorMessage += '• API地址不存在\n';
+            errorMessage += '• 请检查API地址是否正确';
+        } else {
+            errorMessage += `• ${error.message}`;
+        }
+        
+        await showModal(errorMessage);
         
         // Fallback for demo purposes if fetch fails (since we don't have a real backend usually)
         if (await showModal('是否加载演示模型数据? (用于测试界面功能)', true)) {
@@ -2084,6 +2107,14 @@ window.triggerAIReply = async function() {
     const contact = slot.contacts.find(c => c.id === currentChatContactId);
     if (!contact) return;
     
+    // 防止重复触发 - 检查是否已经有正在处理的请求
+    if (window.aiReplyInProgress) {
+        await showModal('AI正在回复中，请稍候...');
+        return;
+    }
+    
+    window.aiReplyInProgress = true;
+    
     // UI feedback (Typing...)
     const typingMsg = { role: 'assistant', content: '<i class="fas fa-ellipsis-h"></i>', timestamp: Date.now(), isTyping: true };
     chat.messages.push(typingMsg);
@@ -2136,8 +2167,13 @@ window.triggerAIReply = async function() {
                 ...chat.messages.filter(m => !m.isTyping).map(m => ({ role: m.role, content: m.content }))
             ];
 
-            // Call API
-            reply = await callLLM(messages);
+            // Call API with timeout
+            reply = await Promise.race([
+                callLLM(messages),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('请求超时，请检查网络连接')), 30000)
+                )
+            ]);
         } else {
             // Fallback Simulation
             await new Promise(r => setTimeout(r, 1000));
@@ -2164,14 +2200,40 @@ window.triggerAIReply = async function() {
 
     } catch (error) {
         console.error('LLM Error:', error);
+        
+        // Remove typing indicator
         chat.messages = chat.messages.filter(m => !m.isTyping);
+        
+        // 显示详细错误信息
+        let errorMessage = `[连接失败]: `;
+        if (error.message.includes('超时')) {
+            errorMessage += '请求超时，请检查网络连接或稍后重试';
+        } else if (error.message.includes('401')) {
+            errorMessage += 'API密钥无效，请检查设置';
+        } else if (error.message.includes('403')) {
+            errorMessage += 'API访问被拒绝，请检查权限';
+        } else if (error.message.includes('404')) {
+            errorMessage += 'API地址不存在，请检查设置';
+        } else if (error.message.includes('fetch')) {
+            errorMessage += '网络连接失败，请检查网络或API地址';
+        } else {
+            errorMessage += error.message;
+        }
+        
         chat.messages.push({
             role: 'assistant',
-            content: `[系统错误]: 无法连接 AI。${error.message}`,
+            content: errorMessage,
             timestamp: Date.now()
         });
+        
         saveState();
         renderMessages();
+        
+        // 显示错误提示
+        await showModal('AI回复失败，请检查网络连接和API配置');
+    } finally {
+        // 重置状态标志
+        window.aiReplyInProgress = false;
     }
 };
 
