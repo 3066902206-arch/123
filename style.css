@@ -10,15 +10,24 @@
     --red: #ff3b30;
     --dock-bg: rgba(255, 255, 255, 0.4);
     --phone-border: #444;
+    --bubble-sent: #007aff;
+    --bubble-received: #e5e5ea;
 }
 
 body.dark-mode {
     --bg-color: #000000;
+    --bubble-received: #3a3a3c;
     --card-bg: #1c1c1e;
     --text-color: #ffffff;
     --sub-text-color: #98989d;
     --separator-color: #38383a;
     --dock-bg: rgba(30, 30, 30, 0.5);
+}
+
+body.bunny-theme {
+    --blue: #ff99cc;
+    --bg-color: #fff0f5;
+    --bubble-sent: #ff99cc;
 }
 
 body {
@@ -164,11 +173,11 @@ body.fullscreen-mode .card-sign {
 
 /* Fullscreen Mode - Larger Chat Bubbles */
 body.fullscreen-mode .chat-bubble {
-    max-width: 65%; /* Reduced by 2 sizes from 75% to 65% */
-    padding: 8px 12px; /* Reduced by 2 sizes from 12px 16px to 8px 12px */
-    border-radius: 16px; /* Reduced by 2 sizes from 20px to 16px */
-    font-size: 12px; /* Reduced by 2 sizes from 16px to 12px */
-    line-height: 1.3; /* Reduced from 1.4 to 1.3 */
+    max-width: 60%; /* Reduced */
+    padding: 5px 10px; /* Reduced */
+    border-radius: 14px; /* Reduced */
+    font-size: 11px; /* Reduced */
+    line-height: 1.3;
 }
 
 body.fullscreen-mode .message-avatar {
@@ -887,8 +896,12 @@ body.dark-mode .music-progress-fill {
     color: var(--text-color);
 }
 
-/* Chat App Title Style - Smaller and Centered */
-#chatAppTitle {
+/* Unified Centered Titles for Chat, Visitors, Space, Couple, Profile */
+#chatAppTitle,
+#spaceTitle,
+#visitorsView .settings-header-nav h1,
+#coupleSpaceView .settings-header-nav h1,
+#profileCardView .settings-header-nav h1 {
     font-size: calc(17px + var(--font-offset)) !important; /* Unified with other titles - reduced size */
     position: absolute;
     left: 50%;
@@ -896,6 +909,7 @@ body.dark-mode .music-progress-fill {
     text-align: center;
     width: auto;
     margin: 0;
+    font-weight: 700;
 }
 
 /* Contacts View Title Style - Centered and Dynamic Font Size */
@@ -1197,6 +1211,71 @@ input:checked + .slider:before {
     font-weight: 600;
 }
 
+/* 修复：QQ/OO 底部导航栏样式 (仿 QQ 风格) */
+.bottom-nav-btn {
+    background: none;
+    border: none;
+    color: var(--sub-text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 12px;
+    cursor: pointer;
+    flex: 1;
+    transition: color 0.2s;
+    height: 100%;
+    outline: none;
+}
+
+.bottom-nav-btn.active {
+    color: var(--blue);
+}
+
+.bottom-nav-btn i {
+    font-size: 24px;
+    margin-bottom: 2px;
+}
+
+.bottom-nav-btn span {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.bottom-nav-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .bottom-nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 修复：“发表动态”标题样式与主标题一致 */
+#postEditorView .settings-header-nav h1 {
+    font-size: calc(17px + var(--font-offset)) !important;
+    font-weight: 700 !important;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    width: max-content;
+    text-align: center;
+    color: var(--text-color);
+}
+
+/* 修复：将叠加层视图设为绝对定位，防止被挤出屏幕 */
+#visitorsView,
+#addContactView,
+#postEditorView {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 500;
+}
+
 /* App Icon List Item */
 .app-icon-row {
     display: flex;
@@ -1346,31 +1425,58 @@ body.dark-mode #appearancePresetSelect {
 }
 
 .chat-bubble {
-    max-width: 65%; /* Reduced width */
-    padding: 8px 12px; /* Reduced padding from 6px 10px */
-    border-radius: 16px;
-    font-size: 11px; /* Increased font size by 1px from 10px */
+    max-width: 60%; /* Reduced */
+    padding: 5px 10px; /* Reduced */
+    border-radius: 14px; /* Reduced */
+    font-size: 10px; /* Reduced */
     line-height: 1.3;
     word-wrap: break-word;
     position: relative;
+    z-index: 1; /* Ensure bubble is above tail parts */
 }
 
 .chat-bubble.sent {
     align-self: flex-end;
-    background-color: #007aff;
+    background-color: var(--bubble-sent);
     color: white;
     border-bottom-right-radius: 4px;
+    margin-right: 5px; /* Space for tail */
 }
 
 .chat-bubble.received {
     align-self: flex-start;
-    background-color: #e5e5ea;
+    background-color: var(--bubble-received);
     color: black;
     border-bottom-left-radius: 4px;
+    margin-left: 5px; /* Space for tail */
 }
 
+/* Chat Bubble Tails - Completely Removed */
+.chat-bubble.sent::before,
+.chat-bubble.sent::after,
+.chat-bubble.received::before,
+.chat-bubble.received::after {
+    display: none !important;
+}
+
+/* Remove tail-related margins and border radius adjustments */
+.chat-bubble.sent {
+    border-bottom-right-radius: 14px;
+    margin-right: 0;
+}
+
+.chat-bubble.received {
+    border-bottom-left-radius: 14px;
+    margin-left: 0;
+}
+
+/* Handle Global Chat Background Cutout Issue */
+/* When a chat wallpaper is set, the cutout color (var(--bg-color)) will be visible. 
+   This is a limitation of CSS-only tails without masks. 
+   We try to mitigate by checking if we can use transparent borders, but cutouts are standard for simple sims. */
+
 body.dark-mode .chat-bubble.received {
-    background-color: #3a3a3c;
+    background-color: var(--bubble-received);
     color: white;
 }
 
@@ -1465,6 +1571,98 @@ body.dark-mode .space-nav-btn:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* Space Header Styles */
+.space-header {
+    position: relative;
+    margin-bottom: 20px;
+    background-color: var(--card-bg);
+}
+
+.space-cover {
+    height: 200px;
+    background-color: #ccc;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    cursor: pointer;
+}
+
+.space-user-info {
+    position: relative;
+    padding: 0 15px 5px 15px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: -30px;
+}
+
+.space-user-name {
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    margin-right: 15px;
+    margin-top: -20px; /* Move up into cover area */
+    z-index: 2;
+}
+
+.space-avatar-container {
+    width: 70px;
+    height: 70px;
+    padding: 3px;
+    background: var(--card-bg);
+    border-radius: 10px; /* Square with rounded corners like QQ Zone */
+    z-index: 2;
+    position: relative;
+}
+
+.space-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.space-visitors-bar {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--separator-color);
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.space-visitors-icon {
+    font-size: 16px;
+    color: var(--sub-text-color);
+    margin-right: 10px;
+}
+
+.space-visitors-text {
+    flex-grow: 1;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+.space-visitors-avatars {
+    display: flex;
+}
+
+.space-visitor-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-left: -10px;
+    border: 2px solid var(--card-bg);
+    background-color: #eee;
+    object-fit: cover;
+}
+
+.space-visitor-avatar:first-child {
+    margin-left: 0;
+}
+
 /* Space Content Styles */
 .space-post {
     background-color: var(--card-bg);
@@ -1548,146 +1746,128 @@ body.dark-mode .space-post-action:hover {
     font-size: 14px;
 }
 
-/* Bottom Navigation Styles */
-.bottom-nav-btn {
+.space-post-action.liked {
+    color: var(--red);
+}
+
+/* Visitors List Styles */
+.visitor-item {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
-    background: none;
-    border: none;
-    color: var(--sub-text-color);
-    font-size: 10px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: color 0.2s;
-    border-radius: 8px;
-    min-width: 60px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--separator-color);
+    background: var(--card-bg);
+    color: var(--text-color);
 }
 
-.bottom-nav-btn.active {
-    color: var(--blue);
+.visitor-item:last-child {
+    border-bottom: none;
 }
 
-.bottom-nav-btn i {
-    font-size: 20px;
+.visitor-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 12px;
+    object-fit: cover;
+}
+
+.visitor-info {
+    flex-grow: 1;
+}
+
+.visitor-name {
+    font-weight: 500;
+    font-size: calc(14px + var(--font-offset));
     margin-bottom: 2px;
 }
 
-.bottom-nav-btn:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+.visitor-type {
+    font-size: calc(10px + var(--font-offset));
+    color: var(--sub-text-color);
 }
 
-body.dark-mode .bottom-nav-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+.visitor-time {
+    font-size: calc(12px + var(--font-offset));
+    color: var(--sub-text-color);
 }
 
-#bottomNavBar {
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-    z-index: 1000; /* 确保底部导航栏在最上层 */
+/* Post Editor Enhancements */
+#postImagePreview {
+    margin: 15px 0;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
-body.dark-mode #bottomNavBar {
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-}
-
-/* 修复联系人页面重叠问题 */
-#contactsView {
-    position: absolute;
-    top: 0;
-    left: 0;
+#postImageDisplay {
     width: 100%;
-    height: 100%;
-    z-index: 2; /* 确保联系人视图在正确层级 */
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
 }
 
-#chatListView {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2; /* 确保聊天列表视图在正确层级 */
+/* Empty State Styles */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--sub-text-color);
 }
 
-/* 确保聊天应用的所有视图都有正确的层级和定位 */
-#chatApp > div[id$="View"] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    background-color: var(--bg-color); /* 确保有背景色遮盖其他内容 */
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
 }
 
-/* 确保底部导航栏在最上层 */
-#bottomNavBar {
+.empty-state-text {
+    font-size: calc(16px + var(--font-offset));
+    margin-bottom: 8px;
+}
+
+.empty-state-subtext {
+    font-size: calc(14px + var(--font-offset));
+    opacity: 0.7;
+}
+
+/* Loading Animation */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--separator-color);
+    border-radius: 50%;
+    border-top-color: var(--blue);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Notification Badge */
+.notification-badge {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background-color: var(--card-bg);
-    border-top: 1px solid var(--separator-color);
+    top: -5px;
+    right: -5px;
+    background: var(--red);
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
     display: flex;
     align-items: center;
-    justify-content: space-around;
-    z-index: 1000; /* 确保底部导航栏在最上层 */
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    justify-content: center;
+    font-weight: 600;
 }
 
-body.dark-mode #bottomNavBar {
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+/* 调整底栏字体大小 */
+.bottom-nav-btn span {
+    font-size: 9px !important;
 }
 
-/* Theme Control - Hide rabbit ears in default theme */
-body:not(.bunny-theme) .app-icon::before,
-body:not(.bunny-theme) .app-icon::after,
-body:not(.bunny-theme) .days-matter-widget::before,
-body:not(.bunny-theme) .days-matter-widget::after,
-body:not(.bunny-theme) .image-widget::before,
-body:not(.bunny-theme) .image-widget::after {
-    display: none;
-}
-
-/* Bunny Theme Customizations */
-body.bunny-theme [data-i18n="returnHome"] {
-    color: #FF69B4 !important;
-}
-
-body.bunny-theme .settings-app,
-body.bunny-theme .settings-page,
-body.bunny-theme .settings-header-nav {
-    background-color: #FFFAFC;
-}
-
-body.dark-mode.bunny-theme .settings-app,
-body.dark-mode.bunny-theme .settings-page,
-body.dark-mode.bunny-theme .settings-header-nav {
-    background-color: #2A1E23;
-}
-
-/* Bunny Theme Modal */
-body.bunny-theme .modal-content {
-    background-color: #FFFAFC;
-}
-body.bunny-theme .modal-btn {
-    color: #FF69B4;
-}
-
-/* Bunny Theme Chat Bubbles */
-body.bunny-theme .chat-bubble.sent {
-    background-color: #FFB6C1;
-    color: white;
-}
-body.bunny-theme .chat-bubble.received {
-    background-color: #FFFFFF;
-    color: black;
-}
-
-/* Dark Mode Bunny Theme Modal */
-body.dark-mode.bunny-theme .modal-content {
-    background-color: #2A1E23;
-    color: #FFB6C1;
+/* 让联系人列表卡边 */
+#contactsView .settings-content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
